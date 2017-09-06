@@ -50,10 +50,10 @@ class Handler(BaseHandler):
                     # 插入操作
                     if 'directors' in item:
                         sql = 'insert into douban_data(douban_id, title, url, image_large, rate, subtype) values (%s, %s, %s, %s, %s, %s)'
-                        cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], 'movie'))
+                        cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], 1))
                     else:
                         sql = 'insert into douban_data(douban_id, title, url, image_large, rate, is_new, playable, subtype) values (%s, %s, %s, %s, %s, %s, %s, %s)'
-                        cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], item['is_new'], item['playable'], 'movie'))
+                        cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], item['is_new'], item['playable'], 1))
                 self.connect.commit()
 
             except Exception as e:
