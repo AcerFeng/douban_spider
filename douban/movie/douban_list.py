@@ -36,23 +36,23 @@ class Handler(BaseHandler):
         for item in movieData:
             try:
                 cursor = self.connect.cursor()
-                cursor.execute('select count(*) from douban_data where douban_id=%s', (item['id'],))
+                cursor.execute('select count(*) from douban_video where video_id=%s', (item['id'],))
                 result = cursor.fetchone()
                 if result[0]:
                     # 更新操作
                     if 'directors' in item:
-                        sql = 'update douban_data set title=%s, url=%s, image_large=%s, rate=%s where douban_id=%s'
+                        sql = 'update douban_video set title=%s, url=%s, image_large=%s, rate=%s where video_id=%s'
                         cursor.execute(sql, (item['title'], item['url'], item['cover'], item['rate'], item['id']))
                     else:
-                        sql = 'update douban_data set title=%s, url=%s, image_large=%s, rate=%s, is_new=%s, playable=%s where douban_id=%s'
+                        sql = 'update douban_video set title=%s, url=%s, image_large=%s, rate=%s, is_new=%s, playable=%s where video_id=%s'
                         cursor.execute(sql, (item['title'], item['url'], item['cover'], item['rate'], item['is_new'], item['playable'], item['id']))
                 else:
                     # 插入操作
                     if 'directors' in item:
-                        sql = 'insert into douban_data(douban_id, title, url, image_large, rate, subtype) values (%s, %s, %s, %s, %s, %s)'
+                        sql = 'insert into douban_video(video_id, title, url, image_large, rate, subtype) values (%s, %s, %s, %s, %s, %s)'
                         cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], 1))
                     else:
-                        sql = 'insert into douban_data(douban_id, title, url, image_large, rate, is_new, playable, subtype) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+                        sql = 'insert into douban_video(video_id, title, url, image_large, rate, is_new, playable, subtype) values (%s, %s, %s, %s, %s, %s, %s, %s)'
                         cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], item['is_new'], item['playable'], 1))
                 self.connect.commit()
 
