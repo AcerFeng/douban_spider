@@ -33,29 +33,36 @@ class Handler(BaseHandler):
     def detail_page(self, response):
         same_likes = []
         for x in response.doc('#recommendations dt a').items():
-            str = x.attr('href')
-            same_likes.append(re.match(r'.+\/(\d+)\/', x.attr('href')).group(1))
+            re_same = re.match(r'.+\/(\d+)\/', x.attr('href'))
+            if re_same:
+                same_likes.append(re_same.group(1))
+            
             
         comments = []
         for item in response.doc('#hot-comments .comment-item .comment').items():
+            re_id = re.match(r'.+\/(\w+)\/', item.find('.comment-info a').attr('href'))
             user_comment = {
                 'like_count' : item.find('span.comment-vote span.votes').text(),
                 'name' : item.find('.comment-info a').text(),
                 'url': item.find('.comment-info a').attr('href'),
-                'id': re.match(r'.+\/(\w+)\/', item.find('.comment-info a').attr('href')).group(1),
+                'id': re_id.group(1) if re_id else None,
                 'status': item.find('.comment-info span:eq(0)').text().strip(),
                 'score': item.find('.comment-info span:eq(1)').attr('title').strip(),
                 'time' : item.find('.comment-info span:eq(2)').text().strip(),
             }
             comments.append(user_comment)
      
-        #print(response.doc('#info').text())
-        mins = re.match(r'.+: (\d+)分钟',response.doc('#info').text()).group(1)
-        #print(mins,'分钟')
-        language = re.match(r'.+语言: ([\u4e00-\u9fa5]+) ',response.doc('#info').text()).group(1)
-        print(language)
+        re_mins = re.match(r'.+: (\d+)分钟',response.doc('#info').text())
+        mins = re_mins.group(1) if re_mins else None
+        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5]+) ',response.doc('#info').text())
+        language = re_language.group(1) if re_language else None
+        re_douban_id = re.match(r'.+\/(\d+)\/', response.url)
+        re_watching = re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(0)').text().strip())
+        re_watched = re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(1)').text().strip())
+        re_want_to_watch = re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(2)').text().strip())
+        re_comments_count = re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip())
         return {
-            "douban_id": re.match(r'.+\/(\d+)\/', response.url).group(1),
+            "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
             "directors": [x.text() for x in response.doc('a[rel="v:directedBy"]').items()],
             "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
@@ -67,15 +74,15 @@ class Handler(BaseHandler):
             "score_count": response.doc('#interest_sectl span[property|="v:votes"]').text().strip(),
             "rate": response.doc('#interest_sectl strong').text().strip(),
             "summary": response.doc('#link-report span[property|="v:summary"]').text().strip(),
-            "watching": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(0)').text().strip()).group(1),
-            "watched": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(1)').text().strip()).group(1),
-            "want_to_watch": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(2)').text().strip()).group(1),
+            "watching": re_watching.group(1) if re_watching else None,
+            "watched": re_watched.group(1) if re_watched else None,
+            "want_to_watch": re_want_to_watch.group(1) if re_want_to_watch else None,
             "images": [x.attr('src') for x in response.doc('#related-pic img').items()],
             "same_likes": same_likes,
             "play_platform": [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()],
             "is_free": [x.text().strip() for x in response.doc('.gray_ad ul.bs li span.buylink-price span').items()],
-            "comments_count": re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip()).group(1) if re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip()).group(1) else '0',
-            'hot_comments': comments,
+            "comments_count": re_comments_count.group(1) if re_comments_count.group(1) else '0',
+            "hot_comments": comments,
         }
 
 
