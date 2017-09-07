@@ -5,11 +5,10 @@
 
 from pyspider.libs.base_handler import *
 import re
-from lxml import etree
 
 class Handler(BaseHandler):
     crawl_config = {
-        'itag': 'v002'
+        'itag': 'v003'
     }
     
     def __init__(self):
@@ -21,7 +20,7 @@ class Handler(BaseHandler):
 
     @config(age=10 * 24 * 60 * 60)
     def index_page(self, response):
-        self.crawl('https://movie.douban.com/subject/26776350/?tag=%E7%83%AD%E9%97%A8&from=gaia_video', callback=self.index_page, params={'page_limit' : 20, 'page_start' : 0}, save={'page_limit' : 20, 'page_start' : 0})
+        self.crawl('https://movie.douban.com/subject/26776350/?tag=%E7%83%AD%E9%97%A8&from=gaia_video', callback=self.detail_page, params={'page_limit' : 20, 'page_start' : 0}, save={'page_limit' : 20, 'page_start' : 0})
         return
         if len(response.json['subjects']) != 0:
             for item in response.json['subjects']:
@@ -32,19 +31,15 @@ class Handler(BaseHandler):
 
     @config(priority=2)
     def detail_page(self, response):
-        html = etree.HTML(response.content)
-        #result = etree.tostring(html)
         same_likes = []
         for x in response.doc('#recommendations dt a').items():
-            #print(x.attr('href'))
             str = x.attr('href')
             same_likes.append(re.match(r'.+\/(\d+)\/', x.attr('href')).group(1))
             
         comments = []
         for item in response.doc('#hot-comments .comment-item .comment').items():
-            #print(item.find('.comment-info a').attr('href'))
             user_comment = {
-                'zan' : item.find('span.comment-vote span.votes').text(),
+                'like_count' : item.find('span.comment-vote span.votes').text(),
                 'name' : item.find('.comment-info a').text(),
                 'url': item.find('.comment-info a').attr('href'),
                 'id': re.match(r'.+\/(\w+)\/', item.find('.comment-info a').attr('href')).group(1),
@@ -53,32 +48,36 @@ class Handler(BaseHandler):
                 'time' : item.find('.comment-info span:eq(2)').text().strip(),
             }
             comments.append(user_comment)
-        
-        #print(comments)
-            
+     
+        #print(response.doc('#info').text())
+        mins = re.match(r'.+: (\d+)分钟',response.doc('#info').text()).group(1)
+        #print(mins,'分钟')
+        language = re.match(r'.+语言: ([\u4e00-\u9fa5]+) ',response.doc('#info').text()).group(1)
+        print(language)
         return {
             "douban_id": re.match(r'.+\/(\d+)\/', response.url).group(1),
             "url": response.url,
-            "title3": [x.text() for x in response.doc('a[rel="v:directedBy"]').items()],
-            "title2": response.doc('#info a[rel|="v:directedBy"]').text(),
-            "title": '/'.join(name.text for name in html.xpath('//*[@id="info"]/span[1]/span[2]/a[@rel="v:directedBy"]')).strip(),
-            "bianju": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
-            "zhuyan": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
-            "genre": [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()],
-            "shoubo": [x.text().strip() for x in response.doc('#info span[property|="v:initialReleaseDate"]').items()],
-            "pingfen_count": response.doc('#interest_sectl span[property|="v:votes"]').text().strip(),
+            "directors": [x.text() for x in response.doc('a[rel="v:directedBy"]').items()],
+            "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
+            #"casts": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
+            "genres": [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()],
+            "premiere": [x.text().strip() for x in response.doc('#info span[property|="v:initialReleaseDate"]').items()],
+            "mins": mins,
+            "language": language,
+            "score_count": response.doc('#interest_sectl span[property|="v:votes"]').text().strip(),
             "rate": response.doc('#interest_sectl strong').text().strip(),
             "summary": response.doc('#link-report span[property|="v:summary"]').text().strip(),
-            "onwatch": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(0)').text().strip()).group(1),
+            "watching": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(0)').text().strip()).group(1),
             "watched": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(1)').text().strip()).group(1),
-            "wantwatch": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(2)').text().strip()).group(1),
-            "detail_images": [x.attr('src') for x in response.doc('#related-pic img').items()],
+            "want_to_watch": re.match(r'(\d+).+',response.doc('#subject-others-interests .subject-others-interests-ft a:eq(2)').text().strip()).group(1),
+            "images": [x.attr('src') for x in response.doc('#related-pic img').items()],
             "same_likes": same_likes,
             "play_platform": [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()],
             "is_free": [x.text().strip() for x in response.doc('.gray_ad ul.bs li span.buylink-price span').items()],
             "comments_count": re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip()).group(1) if re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip()).group(1) else '0',
             'hot_comments': comments,
         }
+
 
 
     # def on_result(self,result):
