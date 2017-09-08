@@ -49,6 +49,7 @@ class Handler(BaseHandler):
                 'status': item.find('.comment-info span:eq(0)').text().strip(),
                 'score': item.find('.comment-info span:eq(1)').attr('title').strip(),
                 'time' : item.find('.comment-info span:eq(2)').text().strip(),
+                'content': item.find('p').text().strip(),
             }
             comments.append(user_comment)
      
