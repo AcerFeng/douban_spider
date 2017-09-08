@@ -54,8 +54,8 @@ class Handler(BaseHandler):
      
         re_mins = re.match(r'.+片长: (\w+[\u4e00-\u9fa5]+) ',response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else None
-        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5]+) ',response.doc('#info').text())
-        language = re_language.group(1) if re_language else None
+        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5 \/]+) ',response.doc('#info').text())
+        language = re_language.group(1).strip() if re_language else None
         re_douban_id = re.match(r'.+\/(\d+)\/', response.url)
         re_watching = re.match(r'.*?(\d+)人在看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_watched = re.match(r'.*?(\d+)人看过',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
