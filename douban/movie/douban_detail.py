@@ -52,7 +52,7 @@ class Handler(BaseHandler):
             }
             comments.append(user_comment)
      
-        re_mins = re.match(r'.+: (\d+)分钟',response.doc('#info').text())
+        re_mins = re.match(r'.+: (\d+分钟)',response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else None
         re_language = re.match(r'.+语言: ([\u4e00-\u9fa5]+) ',response.doc('#info').text())
         language = re_language.group(1) if re_language else None
