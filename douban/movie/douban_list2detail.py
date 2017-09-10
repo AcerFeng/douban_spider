@@ -24,36 +24,55 @@ class Handler(BaseHandler):
     def save_comments(self, comments, video_id):
         if comments and len(comments)>0 and video_id:
             for comment in comments:
-                    cursor = self.connect.cursor()
-                    cursor.execute('select count(*) from douban_comments where user_id=%s and video_id=%s', (comment['user_id'],video_id))
-                    result = cursor.fetchone()
-                    if result[0]:
-                        # 更新操作
-                        sql = '''update douban_comments set 
-                            status=%s, 
-                            time=%s, 
-                            like_count=%s,
-                            content=%s
-                            where user_id=%s and video_id=%s'''
+                    try:
+                        cursor = self.connect.cursor()
+                        cursor.execute('select count(*) from douban_comments where user_id=%s and video_id=%s', (comment['user_id'],video_id))
+                        result = cursor.fetchone()
+                        if result[0]:
+                            # 更新操作
+                            sql = '''
+                                update douban_comments set 
+                                status=%s, 
+                                time=%s, 
+                                like_count=%s,
+                                content=%s,
+                                score=%s
+                                where user_id=%s and video_id=%s'''
 
-                        cursor.execute(sql, (item['status'], 
-                                    item['time'], 
-                                    item['like_count'], 
-                                    item['content'], 
-                                    item['user_id'], 
-                                    video_id))
-                    else:
-                        # 插入
-                        sql = '''
-                            insert into douban_comments
-                            (user_id, 
-                            status, 
-                            time, 
-                            like_count, 
-                            content, 
-                            video_id) 
-                            values (%s, %s, %s, %s, %s, %s)
-                        '''
+                            cursor.execute(sql, (comment['status'], 
+                                        comment['time'], 
+                                        comment['like_count'], 
+                                        comment['content'], 
+                                        comment['score'],
+                                        comment['user_id'], 
+                                        video_id))
+                        else:
+                            # 插入
+                            sql = '''
+                                insert into douban_comments
+                                (user_id, 
+                                status,
+                                score, 
+                                time, 
+                                like_count, 
+                                content, 
+                                video_id,
+                                user_name) 
+                                values (%s, %s, %s, %s, %s, %s, %s, %s)
+                            '''
+                            cursor.execute(sql, (comment['user_id'], 
+                                                comment['status'], 
+                                                comment['score'], 
+                                                comment['time'], 
+                                                comment['like_count'], 
+                                                comment['content'], 
+                                                comment['video_id'],
+                                                comment['user_name']))
+
+                        self.connect.commit()
+                    except expression as e:
+                        self.connect.rollback()
+                        raise e
 
     def save_data(self, **kw):
         
@@ -81,36 +100,82 @@ class Handler(BaseHandler):
                     watching_count=%s,
                     writers=%s
                     where video_id=%s'''
-                cursor.execute(sql, (item['comments_count'], 
-                                    item['directors_name'], 
-                                    item['genres'], 
-                                    item['images'], 
-                                    item['is_free'], 
-                                    item['language'],
-                                    item['mins'],
-                                    item['play_platforms'],
-                                    item['premiere'],
-                                    item['same_like_ids'],
-                                    item['score_count'],
-                                    item['summary'],
-                                    item['want_to_watch_count'],
-                                    item['watched_count'],
-                                    item['watching_count'],
-                                    item['writers'],
-                                    item['douban_id']))
+                cursor.execute(sql, (kw['comments_count'], 
+                                    ','.join(kw['directors_name']), 
+                                    ','.join(kw['genres']), 
+                                    ','.join(kw['images']), 
+                                    ','.join(kw['is_free']), 
+                                    kw['language'],
+                                    kw['mins'],
+                                    ','.join(kw['play_platforms']),
+                                    ','.join(kw['premiere']),
+                                    ','.join(kw['same_like_ids']),
+                                    kw['score_count'],
+                                    kw['summary'],
+                                    kw['want_to_watch_count'],
+                                    kw['watched_count'],
+                                    kw['watching_count'],
+                                    ','.join(kw['writers']),
+                                    kw['douban_id']))
 
-                self.save_comments(item['hot_comments'], item['douban_id'])
+                self.save_comments(kw['hot_comments'], kw['douban_id'])
                 
                 
                 
             else:
-                # 插入操作
-                if 'directors' in item:
-                    sql = 'insert into douban_video(video_id, title, url, image_large, rate, subtype) values (%s, %s, %s, %s, %s, %s)'
-                    cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], 1))
-                else:
-                    sql = 'insert into douban_video(video_id, title, url, image_large, rate, is_new, playable, subtype) values (%s, %s, %s, %s, %s, %s, %s, %s)'
-                    cursor.execute(sql, (item['id'], item['title'], item['url'], item['cover'], item['rate'], item['is_new'], item['playable'], 1))
+                # 插入
+                sql = '''
+                    insert into douban_video
+                    (comments_count, 
+                    directors_name, 
+                    douban_id,
+                    genres,
+                    images,
+                    is_free,
+                    language,
+                    mins,
+                    play_platforms,
+                    image_large,
+                    premiere,
+                    rate,
+                    same_like_ids,
+                    score_count,
+                    summary,
+                    title,
+                    url,
+                    want_to_watch_count,
+                    watched_count,
+                    watching_count,
+                    writers,
+                    subtype) 
+                    values (%s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s)
+                '''
+                cursor.execute(sql, (kw['comments_count'], 
+                                    ','.join(kw['statudirectors_names']), 
+                                    kw['douban_id'], 
+                                    ','.join(kw['genres']), 
+                                    ','.join(kw['images']), 
+                                    ','.join(kw['is_free']), 
+                                    kw['language'],
+                                    kw['mins'],
+                                    ','.join(kw['play_platforms']),
+                                    kw['image_large'],
+                                    ','.join(kw['premiere']),
+                                    kw['rate'],
+                                    ','.join(kw['same_like_ids']),
+                                    kw['score_count'],
+                                    kw['summary'],
+                                    kw['title'],
+                                    kw['url'],
+                                    kw['want_to_watch_count'],
+                                    kw['watched_count'],
+                                    kw['watching_count'],
+                                    ','.join(kw['writers']),
+                                    kw['subtype']))
+                self.save_comments(kw['hot_comments'], kw['douban_id'])
+
             self.connect.commit()
 
         except Exception as e:
@@ -149,7 +214,7 @@ class Handler(BaseHandler):
             re_id = re.match(r'.+\/(\w+)\/', item.find('.comment-info a').attr('href'))
             user_comment = {
                 'like_count' : item.find('span.comment-vote span.votes').text(),
-                'name' : item.find('.comment-info a').text(),
+                'user_name' : item.find('.comment-info a').text(),
                 'url': item.find('.comment-info a').attr('href'),
                 'user_id': re_id.group(1) if re_id else None,
                 'status': item.find('.comment-info span:eq(0)').text().strip(),
@@ -169,6 +234,22 @@ class Handler(BaseHandler):
         re_want_to_watch = re.match(r'.*?(\d+)人想看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_comments_count = re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip())
         re_title = re.match(r'(.+)的短评', response.doc('#comments-section .mod-hd i').text().strip())
+        re_subtype = re.match(r'.+的影评 ·.+', response.doc('section.reviews header h2').text().strip())
+        celebrities_images = []
+        celebrities_name = []
+        celebrities_url = []
+        celebrities_id = []
+        celebrities_role = []
+        for celebrity in response.doc('#celebrities ul li').items():
+            re_cele_image = re.match(r'.+\((.+)\)', celebrity.find('a .avatar').attr('style') if celebrity.find('a .avatar').attr('style') else '')
+            re_cele_id = re.match(r'.+\/(.+)\/$', celebrity.find('.info .name a').attr('href') if celebrity.find('.info .name a').attr('href') else '')
+            celebrities_images.append(re_cele_image.group(1) if re_cele_image else '')
+            celebrities_name.append(celebrity.find('.info .name a').text().strip() if celebrity.find('.info .name a').text().strip() else '')
+            celebrities_url.append(celebrity.find('.info .name a').attr('href').strip() if celebrity.find('.info .name a').attr('href') else '')
+            celebrities_id.append(re_cele_id.group(1) if re_cele_id else '')
+            celebrities_role.append(celebrity.find('.info .role').text().strip() if celebrity.find('.info .role').text().strip() else '')
+
+
         return {
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
@@ -191,8 +272,15 @@ class Handler(BaseHandler):
             "is_free": [x.text().strip() for x in response.doc('.gray_ad ul.bs li span.buylink-price span').items()],
             "comments_count": re_comments_count.group(1) if re_comments_count.group(1) else '0',
             "hot_comments": comments,
-            "poster": response.doc('#mainpic img').attr('src').strip(),
+            "image_large": response.doc('#mainpic img').attr('src').strip(),
             "title": re_title.group(1) if re_title else None,
+            "subtype": 1 if re_subtype else 2,
+            "celebrities_images": celebrities_images,
+            "celebrities_name": celebrities_name,
+            "celebrities_url": celebrities_url,
+            "celebrities_id": celebrities_id,
+            "celebrities_role": celebrities_role,
+            
         }
 
     def on_result(self,result):
