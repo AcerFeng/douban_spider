@@ -7,6 +7,10 @@ from pyspider.libs.base_handler import *
 import pymysql
 import re
 
+from pyspider.libs.base_handler import *
+import pymysql
+import re
+
 class Handler(BaseHandler):
     crawl_config = {
         'itag': 'v003'
@@ -98,7 +102,13 @@ class Handler(BaseHandler):
                     want_to_watch_count=%s,
                     watched_count=%s,
                     watching_count=%s,
-                    writers=%s
+                    writers=%s,
+                    casts=%s,
+                    casts_ids=%s,
+                    celebrities_images=%s,
+                    celebrities_name=%s,
+                    celebrities_id=%s,
+                    celebrities_role=%s
                     where video_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -116,6 +126,12 @@ class Handler(BaseHandler):
                                     kw['watched_count'],
                                     kw['watching_count'],
                                     ','.join(kw['writers']),
+                                    ','.join(kw['casts']),
+                                    ','.join(kw['casts_ids']),
+                                    ','.join(kw['celebrities_images']),
+                                    ','.join(kw['celebrities_name']),
+                                    ','.join(kw['celebrities_id']),
+                                    ','.join(kw['celebrities_role']),
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -147,10 +163,17 @@ class Handler(BaseHandler):
                     watched_count,
                     watching_count,
                     writers,
-                    subtype) 
+                    subtype,
+                    casts,
+                    casts_ids,
+                    celebrities_images,
+                    celebrities_name,
+                    celebrities_id,
+                    celebrities_role) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s)
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -173,7 +196,13 @@ class Handler(BaseHandler):
                                     kw['watched_count'],
                                     kw['watching_count'],
                                     ','.join(kw['writers']),
-                                    kw['subtype']))
+                                    kw['subtype'],
+                                    ','.join(kw['casts']),
+                                    ','.join(kw['casts_ids']),
+                                    ','.join(kw['celebrities_images']),
+                                    ','.join(kw['celebrities_name']),
+                                    ','.join(kw['celebrities_id']),
+                                    ','.join(kw['celebrities_role']),))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -252,7 +281,12 @@ class Handler(BaseHandler):
             celebrities_id.append(re_cele_id.group(1) if re_cele_id else '')
             celebrities_role.append(celebrity.find('.info .role').text().strip() if celebrity.find('.info .role').text().strip() else '')
 
-        play_platforms = [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()];
+        play_platforms = [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()]
+        casts_ids = []
+        for item in response.doc('#info span.actor span.attrs a').items():
+            re_casts_id = re.match(r'.+?/(\d+)/', item.attr('href'))
+            casts_ids.append(re_casts_id.group(1) if re_casts_id else '')
+        
         return {
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
@@ -260,6 +294,7 @@ class Handler(BaseHandler):
             "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
             "casts": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
             "casts_url": [x.attr('href') for x in response.doc('#info span.actor span.attrs a').items()],
+            "casts_ids" : casts_ids,
             "genres": [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()],
             "premiere": [x.text().strip() for x in response.doc('#info span[property|="v:initialReleaseDate"]').items()],
             "mins": mins,
