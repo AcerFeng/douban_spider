@@ -66,7 +66,7 @@ class Handler(BaseHandler):
                                                 comment['time'], 
                                                 comment['like_count'], 
                                                 comment['content'], 
-                                                comment['video_id'],
+                                                video_id,
                                                 comment['user_name']))
 
                         self.connect.commit()
@@ -78,7 +78,7 @@ class Handler(BaseHandler):
         
         try:
             cursor = self.connect.cursor()
-            cursor.execute('select count(*) from douban_video where video_id=%s', (item['douban_id'],))
+            cursor.execute('select count(*) from douban_video where video_id=%s', (kw['douban_id'],))
             result = cursor.fetchone()
             if result[0]:
                 # 更新操作
@@ -128,7 +128,7 @@ class Handler(BaseHandler):
                     insert into douban_video
                     (comments_count, 
                     directors_name, 
-                    douban_id,
+                    video_id,
                     genres,
                     images,
                     is_free,
@@ -153,7 +153,7 @@ class Handler(BaseHandler):
                         %s, %s, %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
-                                    ','.join(kw['statudirectors_names']), 
+                                    ','.join(kw['directors_name']), 
                                     kw['douban_id'], 
                                     ','.join(kw['genres']), 
                                     ','.join(kw['images']), 
@@ -197,7 +197,10 @@ class Handler(BaseHandler):
         if len(data_list) != 0:
             for item in data_list:
                 self.crawl(item['url'], callback=self.detail_page)
-            self.crawl(self.DOU_BAN_MOVIE_HOT, callback=self.index_page, params={'page_limit' : response.save['page_limit'] + 20, 'page_start' : response.save['page_start'] + 20}, save={'page_limit' : response.save['page_limit'] + 20, 'page_start' : response.save['page_start'] + 20})
+            self.crawl(self.DOU_BAN_MOVIE_HOT, callback=self.index_page, params={'page_limit' : response.save['page_limit'] + 20, 
+                                                                                'page_start' : response.save['page_start'] + 20}, 
+                                                                        save={'page_limit' : response.save['page_limit'] + 20, 
+                                                                                'page_start' : response.save['page_start'] + 20})
 
 
     @config(priority=2)
@@ -226,9 +229,9 @@ class Handler(BaseHandler):
      
         re_mins = re.match(r'.+片长: (\w+[\u4e00-\u9fa5]+) ',response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
-        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5 \/]+) ',response.doc('#info').text())
+        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5 /]+) ',response.doc('#info').text())
         language = re_language.group(1).strip() if re_language else None
-        re_douban_id = re.match(r'.+\/(\d+)\/', response.url)
+        re_douban_id = re.match(r'.+/(\d+)/', response.url)
         re_watching = re.match(r'.*?(\d+)人在看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_watched = re.match(r'.*?(\d+)人看过',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_want_to_watch = re.match(r'.*?(\d+)人想看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
@@ -249,13 +252,14 @@ class Handler(BaseHandler):
             celebrities_id.append(re_cele_id.group(1) if re_cele_id else '')
             celebrities_role.append(celebrity.find('.info .role').text().strip() if celebrity.find('.info .role').text().strip() else '')
 
-
+        play_platforms = [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()];
         return {
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
             "directors_name": [x.text() for x in response.doc('a[rel="v:directedBy"]').items()],
             "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
-            #"casts": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
+            "casts": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
+            "casts_url": [x.attr('href') for x in response.doc('#info span.actor span.attrs a').items()],
             "genres": [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()],
             "premiere": [x.text().strip() for x in response.doc('#info span[property|="v:initialReleaseDate"]').items()],
             "mins": mins,
@@ -268,7 +272,7 @@ class Handler(BaseHandler):
             "want_to_watch_count": re_want_to_watch.group(1) if re_want_to_watch else None,
             "images": [x.attr('src') for x in response.doc('#related-pic img').items()],
             "same_like_ids": same_likes,
-            "play_platforms": [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()],
+            "play_platforms": play_platforms,
             "is_free": [x.text().strip() for x in response.doc('.gray_ad ul.bs li span.buylink-price span').items()],
             "comments_count": re_comments_count.group(1) if re_comments_count.group(1) else '0',
             "hot_comments": comments,
@@ -280,9 +284,9 @@ class Handler(BaseHandler):
             "celebrities_url": celebrities_url,
             "celebrities_id": celebrities_id,
             "celebrities_role": celebrities_role,
-            
+            "playable": len(play_platforms)>0,
         }
-
+    
     def on_result(self,result):
         if not result:
             return
