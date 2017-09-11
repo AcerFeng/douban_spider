@@ -9,7 +9,7 @@ CREATE TABLE `douban_video` (
   `summary` varchar(700) DEFAULT NULL,
   `playable` tinyint(1) DEFAULT NULL,
   `star` varchar(5) DEFAULT NULL,
-  `subtype` int(2) DEFAULT '1',
+  `subtype` int(3) DEFAULT '1',
   `json_source` json DEFAULT NULL,
   `comments_count` varchar(10) DEFAULT NULL,
   `directors_name` varchar(50) DEFAULT NULL,
@@ -26,9 +26,15 @@ CREATE TABLE `douban_video` (
   `watched_count` varchar(10) DEFAULT NULL,
   `watching_count` varchar(10) DEFAULT NULL,
   `writers` varchar(50) DEFAULT NULL,
+  `casts` varchar(400) DEFAULT NULL,
+  `casts_ids` varchar(500) DEFAULT NULL,
+  `celebrities_images` varchar(600) DEFAULT NULL,
+  `celebrities_name` varchar(180) DEFAULT NULL,
+  `celebrities_id` varchar(100) DEFAULT NULL,
+  `celebrities_role` varchar(80) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `douban_id` (`video_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=926 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `douban_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -46,6 +52,7 @@ CREATE TABLE `douban_comments` (
   `like_count` varchar(10) DEFAULT NULL,
   `content` varchar(150) DEFAULT NULL,
   `video_id` varchar(15) DEFAULT NULL,
+  `score` varchar(10) DEFAULT NULL,
   `user_name` varchar(15) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4;
