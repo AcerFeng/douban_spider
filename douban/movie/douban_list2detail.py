@@ -7,10 +7,6 @@ from pyspider.libs.base_handler import *
 import pymysql
 import re
 
-from pyspider.libs.base_handler import *
-import pymysql
-import re
-
 class Handler(BaseHandler):
     crawl_config = {
         'itag': 'v003'
@@ -74,7 +70,7 @@ class Handler(BaseHandler):
                                                 comment['user_name']))
 
                         self.connect.commit()
-                    except expression as e:
+                    except Exception as e:
                         self.connect.rollback()
                         raise e
 
@@ -325,7 +321,7 @@ class Handler(BaseHandler):
             "celebrities_id": celebrities_id,
             "celebrities_role": celebrities_role,
             "playable": len(play_platforms)>0,
-            "aka" : re_aka.group(1).strip().split(' / ') if re_aka else None,
+            "aka" : re_aka.group(1).strip().split(' / ') if re_aka else [],
         }
     
     def on_result(self,result):
