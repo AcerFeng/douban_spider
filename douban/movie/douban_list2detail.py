@@ -6,6 +6,7 @@
 from pyspider.libs.base_handler import *
 import pymysql
 import re
+import time
 
 class Handler(BaseHandler):
     crawl_config = {
@@ -14,6 +15,21 @@ class Handler(BaseHandler):
     
     def __init__(self):
         self.DOU_BAN_MOVIE_HOT = 'http://movie.douban.com/j/search_subjects?type=movie&tag=%E7%83%AD%E9%97%A8&sort=time'
+        self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
+        self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
+        self.pattern_language = re.compile(r'.+语言: ([\u4e00-\u9fa5 /]+) ')
+        self.pattern_douban_id = re.compile(r'.+/(\d+)/')
+        self.pattern_watching = re.compile(r'.*?(\d+)人在看')
+        self.pattern_watched = re.compile(r'.*?(\d+)人看过')
+        self.pattern_want_to_watch = re.compile(r'.*?(\d+)人想看')
+        self.pattern_comments_count = re.compile(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+')
+        self.pattern_title = re.compile(r'(.+)的短评')
+        self.pattern_subtype = re.compile(r'.+的影评 ·.+')
+        
+        self.pattern_cele_image = re.compile(r'.+\((.+)\)')
+        self.pattern_cele_id = re.compile(r'.+\/(.+)\/$')
+
+        self.pattern_casts_id = re.compile(r'.+?/(\d+)/')
         try:
             self.connect = pymysql.connect(host='localhost', port=3306, user='root', passwd='123456', db='douban', charset='utf8mb4')
             
@@ -255,27 +271,27 @@ class Handler(BaseHandler):
                 'content': item.find('p').text().strip(),
             }
             comments.append(user_comment)
-     
-        re_aka = re.search(r'.+?又名:</span>(.+)<', response.doc('#info').html().strip())
-        re_mins = re.match(r'.+片长: (\w+[\u4e00-\u9fa5]+) ',response.doc('#info').text())
+            
+        re_aka = self.pattern_aka.search(response.doc('#info').html().strip())
+        re_mins = self.pattern_mins.match(response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
-        re_language = re.match(r'.+语言: ([\u4e00-\u9fa5 /]+) ',response.doc('#info').text())
+        re_language = self.pattern_language.match(response.doc('#info').text())
         language = re_language.group(1).strip() if re_language else None
-        re_douban_id = re.match(r'.+/(\d+)/', response.url)
-        re_watching = re.match(r'.*?(\d+)人在看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_watched = re.match(r'.*?(\d+)人看过',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_want_to_watch = re.match(r'.*?(\d+)人想看',response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_comments_count = re.match(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+', response.doc('#comments-section span.pl a').text().strip())
-        re_title = re.match(r'(.+)的短评', response.doc('#comments-section .mod-hd i').text().strip())
-        re_subtype = re.match(r'.+的影评 ·.+', response.doc('section.reviews header h2').text().strip())
+        re_douban_id = self.pattern_douban_id.match(response.url)
+        re_watching = self.pattern_watching.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
+        re_watched = self.pattern_watched.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
+        re_want_to_watch = self.pattern_want_to_watch.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
+        re_comments_count = self.pattern_comments_count.match(response.doc('#comments-section span.pl a').text().strip())
+        re_title = self.pattern_title.match(response.doc('#comments-section .mod-hd i').text().strip())
+        re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
         celebrities_images = []
         celebrities_name = []
         celebrities_url = []
         celebrities_id = []
         celebrities_role = []
         for celebrity in response.doc('#celebrities ul li').items():
-            re_cele_image = re.match(r'.+\((.+)\)', celebrity.find('a .avatar').attr('style') if celebrity.find('a .avatar').attr('style') else '')
-            re_cele_id = re.match(r'.+\/(.+)\/$', celebrity.find('.info .name a').attr('href') if celebrity.find('.info .name a').attr('href') else '')
+            re_cele_image = self.pattern_cele_image.match(celebrity.find('a .avatar').attr('style') if celebrity.find('a .avatar').attr('style') else '')
+            re_cele_id = self.pattern_cele_id.match(celebrity.find('.info .name a').attr('href') if celebrity.find('.info .name a').attr('href') else '')
             celebrities_images.append(re_cele_image.group(1) if re_cele_image else '')
             celebrities_name.append(celebrity.find('.info .name a').text().strip() if celebrity.find('.info .name a').text().strip() else '')
             celebrities_url.append(celebrity.find('.info .name a').attr('href').strip() if celebrity.find('.info .name a').attr('href') else '')
@@ -285,7 +301,7 @@ class Handler(BaseHandler):
         play_platforms = [x.text().strip() for x in response.doc('.gray_ad ul.bs li a.playBtn').items()]
         casts_ids = []
         for item in response.doc('#info span.actor span.attrs a').items():
-            re_casts_id = re.match(r'.+?/(\d+)/', item.attr('href'))
+            re_casts_id = self.pattern_casts_id.match(item.attr('href'))
             casts_ids.append(re_casts_id.group(1) if re_casts_id else '')
         
         return {
