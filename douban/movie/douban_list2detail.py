@@ -6,7 +6,6 @@
 from pyspider.libs.base_handler import *
 import pymysql
 import re
-import time
 
 class Handler(BaseHandler):
     crawl_config = {
@@ -121,7 +120,12 @@ class Handler(BaseHandler):
                     celebrities_name=%s,
                     celebrities_id=%s,
                     celebrities_role=%s,
-                    aka=%s
+                    aka=%s,
+                    rating_per5=%s,
+                    rating_per4=%s,
+                    rating_per3=%s,
+                    rating_per2=%s,
+                    rating_per1=%s
                     where video_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -146,6 +150,11 @@ class Handler(BaseHandler):
                                     ','.join(kw['celebrities_id']),
                                     ','.join(kw['celebrities_role']),
                                     ','.join(kw['aka']),
+                                    kw['rating_per5'],
+                                    kw['rating_per4'],
+                                    kw['rating_per3'],
+                                    kw['rating_per2'],
+                                    kw['rating_per1'],
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -184,11 +193,16 @@ class Handler(BaseHandler):
                     celebrities_name,
                     celebrities_id,
                     celebrities_role,
-                    aka) 
+                    aka,
+                    rating_per5,
+                    rating_per4,
+                    rating_per3,
+                    rating_per2,
+                    rating_per1) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s)
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -218,7 +232,12 @@ class Handler(BaseHandler):
                                     ','.join(kw['celebrities_name']),
                                     ','.join(kw['celebrities_id']),
                                     ','.join(kw['celebrities_role']),
-                                    ','.join(kw['aka']),))
+                                    ','.join(kw['aka']),
+                                    kw['rating_per5'],
+                                    kw['rating_per4'],
+                                    kw['rating_per3'],
+                                    kw['rating_per2'],
+                                    kw['rating_per1'],))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -271,7 +290,7 @@ class Handler(BaseHandler):
                 'content': item.find('p').text().strip(),
             }
             comments.append(user_comment)
-            
+
         re_aka = self.pattern_aka.search(response.doc('#info').html().strip())
         re_mins = self.pattern_mins.match(response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
@@ -338,6 +357,11 @@ class Handler(BaseHandler):
             "celebrities_role": celebrities_role,
             "playable": len(play_platforms)>0,
             "aka" : re_aka.group(1).strip().split(' / ') if re_aka else [],
+            "rating_per5": response.doc('#interest_sectl .ratings-on-weight .item:eq(0) .rating_per').text().strip(),
+            "rating_per4": response.doc('#interest_sectl .ratings-on-weight .item:eq(1) .rating_per').text().strip(),
+            "rating_per3": response.doc('#interest_sectl .ratings-on-weight .item:eq(2) .rating_per').text().strip(),
+            "rating_per2": response.doc('#interest_sectl .ratings-on-weight .item:eq(3) .rating_per').text().strip(),
+            "rating_per1": response.doc('#interest_sectl .ratings-on-weight .item:eq(4) .rating_per').text().strip(),
         }
     
     def on_result(self,result):
