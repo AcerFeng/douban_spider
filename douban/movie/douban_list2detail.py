@@ -108,7 +108,8 @@ class Handler(BaseHandler):
                     celebrities_images=%s,
                     celebrities_name=%s,
                     celebrities_id=%s,
-                    celebrities_role=%s
+                    celebrities_role=%s,
+                    aka=%s
                     where video_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -132,6 +133,7 @@ class Handler(BaseHandler):
                                     ','.join(kw['celebrities_name']),
                                     ','.join(kw['celebrities_id']),
                                     ','.join(kw['celebrities_role']),
+                                    ','.join(kw['aka']),
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -169,11 +171,12 @@ class Handler(BaseHandler):
                     celebrities_images,
                     celebrities_name,
                     celebrities_id,
-                    celebrities_role) 
+                    celebrities_role,
+                    aka) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s)
+                        %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -202,7 +205,8 @@ class Handler(BaseHandler):
                                     ','.join(kw['celebrities_images']),
                                     ','.join(kw['celebrities_name']),
                                     ','.join(kw['celebrities_id']),
-                                    ','.join(kw['celebrities_role']),))
+                                    ','.join(kw['celebrities_role']),
+                                    ','.join(kw['aka']),))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -256,6 +260,7 @@ class Handler(BaseHandler):
             }
             comments.append(user_comment)
      
+        re_aka = re.search(r'.+?又名:</span>(.+)<', response.doc('#info').html().strip())
         re_mins = re.match(r'.+片长: (\w+[\u4e00-\u9fa5]+) ',response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
         re_language = re.match(r'.+语言: ([\u4e00-\u9fa5 /]+) ',response.doc('#info').text())
@@ -320,6 +325,7 @@ class Handler(BaseHandler):
             "celebrities_id": celebrities_id,
             "celebrities_role": celebrities_role,
             "playable": len(play_platforms)>0,
+            "aka" : re_aka.group(1).strip().split(' / ') if re_aka else None,
         }
     
     def on_result(self,result):
