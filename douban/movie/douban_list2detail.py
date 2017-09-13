@@ -9,7 +9,12 @@ import re
 
 class Handler(BaseHandler):
     crawl_config = {
-        'itag': 'v003'
+        'itag': 'v004',
+        'proxy': 'https://183.189.118.211:80',
+        'cookies': {
+          '__utmb':'30149280.0.10.1505289762',
+          'dbcl2': '162930320:6IWEbIKitho'
+        },
     }
     
     def __init__(self):
@@ -276,8 +281,11 @@ class Handler(BaseHandler):
         same_likes = []
         for x in response.doc('#recommendations dt a').items():
             re_same = re.match(r'.+\/(\d+)\/', x.attr('href'))
+            re_url = re.match(r'(.+?)\?', x.attr('href'))
             if re_same:
                 same_likes.append(re_same.group(1))
+            if re_url:
+                self.crawl(re_url.group(1), callback=self.detail_page)
             
             
         comments = []
