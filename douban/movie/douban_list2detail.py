@@ -19,6 +19,11 @@ class Handler(BaseHandler):
     
     def __init__(self):
         self.DOU_BAN_MOVIE_HOT = 'http://movie.douban.com/j/search_subjects?type=movie&tag=%E7%83%AD%E9%97%A8&sort=time'
+        self.pattern_same_like = re.compile(r'.+\/(\d+)\/')
+        self.pattern_same_url = re.compile(r'(.+?)\?')
+
+        self.pattern_id = re.compile(r'.+\/(\w+)\/')
+
         self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
         self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
         self.pattern_language = re.compile(r'.+语言: ([\u4e00-\u9fa5 /]+) ')
@@ -280,8 +285,8 @@ class Handler(BaseHandler):
     def detail_page(self, response):
         same_likes = []
         for x in response.doc('#recommendations dt a').items():
-            re_same = re.match(r'.+\/(\d+)\/', x.attr('href'))
-            re_url = re.match(r'(.+?)\?', x.attr('href'))
+            re_same = self.pattern_same_like.match(x.attr('href'))
+            re_url = self.pattern_same_url.match(x.attr('href'))
             if re_same:
                 same_likes.append(re_same.group(1))
             if re_url:
@@ -290,7 +295,7 @@ class Handler(BaseHandler):
             
         comments = []
         for item in response.doc('#hot-comments .comment-item .comment').items():
-            re_id = re.match(r'.+\/(\w+)\/', item.find('.comment-info a').attr('href'))
+            re_id = self.pattern_id.match(item.find('.comment-info a').attr('href'))
             user_comment = {
                 'like_count' : item.find('span.comment-vote span.votes').text(),
                 'user_name' : item.find('.comment-info a').text(),
