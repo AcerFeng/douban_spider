@@ -125,7 +125,8 @@ class Handler(BaseHandler):
                     rating_per4=%s,
                     rating_per3=%s,
                     rating_per2=%s,
-                    rating_per1=%s
+                    rating_per1=%s,
+                    playable=%s
                     where video_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -155,6 +156,7 @@ class Handler(BaseHandler):
                                     kw['rating_per3'],
                                     kw['rating_per2'],
                                     kw['rating_per1'],
+                                    kw['playable'],
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -198,9 +200,10 @@ class Handler(BaseHandler):
                     rating_per4,
                     rating_per3,
                     rating_per2,
-                    rating_per1) 
+                    rating_per1,
+                    playable) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 '''
@@ -237,7 +240,8 @@ class Handler(BaseHandler):
                                     kw['rating_per4'],
                                     kw['rating_per3'],
                                     kw['rating_per2'],
-                                    kw['rating_per1'],))
+                                    kw['rating_per1'],
+                                    kw['playable']))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -284,9 +288,9 @@ class Handler(BaseHandler):
                 'user_name' : item.find('.comment-info a').text(),
                 'url': item.find('.comment-info a').attr('href'),
                 'user_id': re_id.group(1) if re_id else None,
-                'status': item.find('.comment-info span:eq(0)').text().strip(),
-                'score': item.find('.comment-info span:eq(1)').attr('title').strip(),
-                'time' : item.find('.comment-info span:eq(2)').text().strip(),
+                'status': item.find('.comment-info span:eq(0)').text(),
+                'score': item.find('.comment-info span.rating').attr('title'),
+                'time' : item.find('.comment-info span.comment-time').attr('title'),
                 'content': item.find('p').text().strip(),
             }
             comments.append(user_comment)
