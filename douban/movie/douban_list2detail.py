@@ -24,7 +24,10 @@ class Handler(BaseHandler):
 
         self.pattern_id = re.compile(r'.+\/(\w+)\/')
 
-        self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
+        self.pattern_current_season = re.compile(r'.+?季数:</span>(.+?)<')
+        self.pattern_episodes_count = re.compile(r'.+?集数:</span>(.+?)<')
+        self.pattern_countries = re.compile(r'.+地区:</span>(.+?)<')
+        self.pattern_aka = re.compile(r'.+?又名:</span>(.+?)<')
         self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
         self.pattern_language = re.compile(r'.+语言: ([\u4e00-\u9fa5 /]+) ')
         self.pattern_douban_id = re.compile(r'.+/(\d+)/')
@@ -32,7 +35,7 @@ class Handler(BaseHandler):
         self.pattern_watched = re.compile(r'.*?(\d+)人看过')
         self.pattern_want_to_watch = re.compile(r'.*?(\d+)人想看')
         self.pattern_comments_count = re.compile(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+')
-        self.pattern_title = re.compile(r'(.+)的短评')
+        self.pattern_title = re.compile(r'>(.+)的短评</i>')
         self.pattern_subtype = re.compile(r'.+的影评 ·.+')
         
         self.pattern_cele_image = re.compile(r'.+\((.+)\)')
@@ -143,7 +146,7 @@ class Handler(BaseHandler):
                                     ','.join(kw['genres']), 
                                     ','.join(kw['images']), 
                                     ','.join(kw['is_free']), 
-                                    kw['language'],
+                                    ','.join(kw['language']),
                                     kw['mins'],
                                     ','.join(kw['play_platforms']),
                                     ','.join(kw['premiere']),
@@ -223,7 +226,7 @@ class Handler(BaseHandler):
                                     ','.join(kw['genres']), 
                                     ','.join(kw['images']), 
                                     ','.join(kw['is_free']), 
-                                    kw['language'],
+                                    ','.join(kw['language']),
                                     kw['mins'],
                                     ','.join(kw['play_platforms']),
                                     kw['image_large'],
@@ -281,16 +284,14 @@ class Handler(BaseHandler):
                                                                                 'page_start' : response.save['page_start'] + 20})
 
 
-    @config(priority=2)
+    @config(priority=4)
     def detail_page(self, response):
+        
         same_likes = []
         for x in response.doc('#recommendations dt a').items():
             re_same = self.pattern_same_like.match(x.attr('href'))
-            re_url = self.pattern_same_url.match(x.attr('href'))
             if re_same:
                 same_likes.append(re_same.group(1))
-            if re_url:
-                self.crawl(re_url.group(1), callback=self.detail_page)
             
             
         comments = []
@@ -308,18 +309,35 @@ class Handler(BaseHandler):
             }
             comments.append(user_comment)
 
+        re_countries = self.pattern_countries.search(response.doc('#info').html())
         re_aka = self.pattern_aka.search(response.doc('#info').html().strip())
         re_mins = self.pattern_mins.match(response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
         re_language = self.pattern_language.match(response.doc('#info').text())
-        language = re_language.group(1).strip() if re_language else None
+        language = re_language.group(1).strip().split(' / ') if re_language else []
         re_douban_id = self.pattern_douban_id.match(response.url)
         re_watching = self.pattern_watching.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_watched = self.pattern_watched.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_want_to_watch = self.pattern_want_to_watch.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_comments_count = self.pattern_comments_count.match(response.doc('#comments-section span.pl a').text().strip())
-        re_title = self.pattern_title.match(response.doc('#comments-section .mod-hd i').text().strip())
+        re_title = self.pattern_title.search(response.doc('#comments-section .mod-hd h2').html())
+        
+        genres = [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()]
         re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
+        current_season = None
+        episodes_count = None
+        
+        if not re_subtype:
+            re_current_season = self.pattern_current_season.search(response.doc('#info').html())
+            re_episodes_count = self.pattern_episodes_count.search(response.doc('#info').html())
+            episodes_count = re_episodes_count.group(1) if re_episodes_count else None
+            
+            if len(response.doc('#season option[selected="selected"]').text().strip()):
+                current_season = response.doc('#season option[selected="selected"]').text()
+            elif re_current_season:
+                current_season = re_current_season.group(1)
+            
+        
         celebrities_images = []
         celebrities_name = []
         celebrities_url = []
@@ -344,11 +362,11 @@ class Handler(BaseHandler):
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
             "directors_name": [x.text() for x in response.doc('a[rel="v:directedBy"]').items()],
-            "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a').items()],
+            "writers": [x.text().strip() for x in response.doc('#info span:eq(1) span.attrs a:not([rel]):not([target])').items()],
             "casts": [x.text().strip() for x in response.doc('#info span.actor span.attrs a').items()],
             "casts_url": [x.attr('href') for x in response.doc('#info span.actor span.attrs a').items()],
             "casts_ids" : casts_ids,
-            "genres": [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()],
+            "genres": genres,
             "premiere": [x.text().strip() for x in response.doc('#info span[property|="v:initialReleaseDate"]').items()],
             "mins": mins,
             "language": language,
@@ -379,6 +397,10 @@ class Handler(BaseHandler):
             "rating_per3": response.doc('#interest_sectl .ratings-on-weight .item:eq(2) .rating_per').text().strip(),
             "rating_per2": response.doc('#interest_sectl .ratings-on-weight .item:eq(3) .rating_per').text().strip(),
             "rating_per1": response.doc('#interest_sectl .ratings-on-weight .item:eq(4) .rating_per').text().strip(),
+            "current_season": current_season,
+            "episodes_count": episodes_count,
+            "countries": re_countries.group(1).strip().split(' / ') if re_countries else [],
+            "douban_tags": [x.text() for x in response.doc('.tags .tags-body a').items()]
         }
     
     def on_result(self,result):
