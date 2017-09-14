@@ -139,7 +139,11 @@ class Handler(BaseHandler):
                     rating_per3=%s,
                     rating_per2=%s,
                     rating_per1=%s,
-                    playable=%s
+                    playable=%s,
+                    current_season=%s,
+                    episodes_count=%s,
+                    countries=%s,
+                    douban_tags=%s 
                     where video_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -170,6 +174,10 @@ class Handler(BaseHandler):
                                     kw['rating_per2'],
                                     kw['rating_per1'],
                                     kw['playable'],
+                                    kw['current_season'],
+                                    kw['episodes_count'],
+                                    ','.join(kw['countries']),
+                                    ','.join(kw['douban_tags']),
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -214,11 +222,16 @@ class Handler(BaseHandler):
                     rating_per3,
                     rating_per2,
                     rating_per1,
-                    playable) 
+                    playable,
+                    current_season,
+                    episodes_count,
+                    countries,
+                    douban_tags) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -254,7 +267,11 @@ class Handler(BaseHandler):
                                     kw['rating_per3'],
                                     kw['rating_per2'],
                                     kw['rating_per1'],
-                                    kw['playable']))
+                                    kw['playable'],
+                                    kw['current_season'],
+                                    kw['episodes_count'],
+                                    ','.join(kw['countries']),
+                                    ','.join(kw['douban_tags']),))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
