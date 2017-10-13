@@ -376,7 +376,7 @@ class Handler(BaseHandler):
             "same_like_ids": same_likes,
             "play_platforms": play_platforms,
             "is_free": [x.text().strip() for x in response.doc('.gray_ad ul.bs li span.buylink-price span').items()],
-            "comments_count": re_comments_count.group(1) if re_comments_count.group(1) else '0',
+            "comments_count": re_comments_count.group(1) if re_comments_count else '0',
             "hot_comments": comments,
             "image_large": response.doc('#mainpic img').attr('src').strip(),
             "title": re_title.group(1) if re_title else None,
