@@ -203,7 +203,7 @@ class Handler(BaseHandler):
                     same_like_ids,
                     score_count,
                     summary,
-                    title,
+                    name,
                     url,
                     want_to_watch_count,
                     watched_count,
