@@ -56,7 +56,7 @@ CREATE TABLE `douban_user` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `douban_comments` (
+CREATE TABLE `douban_comment` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` varchar(20) NOT NULL DEFAULT '',
   `status` varchar(5) DEFAULT NULL,

@@ -61,12 +61,12 @@ class Handler(BaseHandler):
             for comment in comments:
                     try:
                         cursor = self.connect.cursor()
-                        cursor.execute('select count(*) from douban_comments where user_id=%s and douban_id=%s', (comment['user_id'],douban_id))
+                        cursor.execute('select count(*) from douban_comment where user_id=%s and douban_id=%s', (comment['user_id'],douban_id))
                         result = cursor.fetchone()
                         if result[0]:
                             # 更新操作
                             sql = '''
-                                update douban_comments set 
+                                update douban_comment set 
                                 status=%s, 
                                 time=%s, 
                                 like_count=%s,
@@ -84,7 +84,7 @@ class Handler(BaseHandler):
                         else:
                             # 插入
                             sql = '''
-                                insert into douban_comments
+                                insert into douban_comment
                                 (user_id, 
                                 status,
                                 score, 
