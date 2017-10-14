@@ -19,7 +19,7 @@ class Handler(BaseHandler):
     crawl_config = {
         'itag': 'v001',
         'headers': headers,
-        'proxy': 'https://61.160.208.222:8080',
+        #'proxy': 'https://61.160.208.222:8080',
         'cookies': {
           '__utmb':'30149280.0.10.1505289762',
           'dbcl2': '162930320:6IWEbIKitho'
@@ -34,12 +34,12 @@ class Handler(BaseHandler):
         self.pattern_countries = re.compile(r'.+地区:<\/span>(.+?)<')
         self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
         self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
-        self.pattern_language = re.compile(r'.+语言: ([\u4e00-\u9fa5 /]+) ')
+        self.pattern_language = re.compile(r'.+语言:<\/span>(.+?)<')
         self.pattern_douban_id = re.compile(r'.+/(\d+)/')
         self.pattern_watching = re.compile(r'.*?(\d+)人在看')
         self.pattern_watched = re.compile(r'.*?(\d+)人看过')
         self.pattern_want_to_watch = re.compile(r'.*?(\d+)人想看')
-        self.pattern_comments_count = re.compile(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+')
+        self.pattern_comments_count = re.compile(r'全部 (\d+) 条')
         self.pattern_title = re.compile(r'(.+?) \(豆瓣\)')
         self.pattern_subtype = re.compile(r'.+的影评 ·.+')
         
@@ -343,30 +343,24 @@ class Handler(BaseHandler):
             }
             comments.append(user_comment)
         
-        re_countries = self.pattern_countries.search(response.doc('#info').html())
-        print(response.doc('#info').html())
-        print(re_countries)
-        re_aka = self.pattern_aka.search(response.doc('#info').html().strip())
+        re_countries = self.pattern_countries.search(response.doc('#info').html().encode('utf-8'))
+        re_aka = self.pattern_aka.search(response.doc('#info').html().strip().encode('utf-8'))
         re_mins = self.pattern_mins.match(response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
-        re_language = self.pattern_language.match(response.doc('#info').text())
+        re_language = self.pattern_language.search(response.doc('#info').html().encode('utf-8'))
         language = re_language.group(1).strip() if re_language else None
         re_douban_id = self.pattern_douban_id.match(response.url)
-        re_watching = self.pattern_watching.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_watched = self.pattern_watched.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_want_to_watch = self.pattern_want_to_watch.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
-        re_comments_count = self.pattern_comments_count.match(response.doc('#comments-section span.pl a').text().strip())
-        #re_title = self.pattern_title.match(response.doc('title').text().strip())
-        re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
-        
-        genres = [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()]
-        re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
+        re_watching = self.pattern_watching.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip().encode('utf-8'))
+        re_watched = self.pattern_watched.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip().encode('utf-8'))
+        re_want_to_watch = self.pattern_want_to_watch.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip().encode('utf-8'))
+        re_comments_count = self.pattern_comments_count.match(response.doc('#comments-section span.pl a').text().strip().encode('utf-8'))
+        re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip().encode('utf-8'))
         current_season = None
         episodes_count = None
         
         if not re_subtype:
-            re_current_season = self.pattern_current_season.search(response.doc('#info').html())
-            re_episodes_count = self.pattern_episodes_count.search(response.doc('#info').html())
+            re_current_season = self.pattern_current_season.search(response.doc('#info').html().encode('utf-8'))
+            re_episodes_count = self.pattern_episodes_count.search(response.doc('#info').html().encode('utf-8'))
             episodes_count = re_episodes_count.group(1) if re_episodes_count else None
             
             if len(response.doc('#season option[selected="selected"]').text().strip()):
