@@ -17,7 +17,7 @@ class Handler(BaseHandler):
     "User-Agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36"
     }
     crawl_config = {
-        'itag': 'v008',
+        'itag': 'v001',
         'headers': headers,
         'proxy': 'https://61.160.208.222:8080',
         'cookies': {
@@ -28,6 +28,10 @@ class Handler(BaseHandler):
     
     def __init__(self):
         self.DOU_BAN_MOVIE_HOT = 'http://movie.douban.com/j/search_subjects?type=movie&tag=%E7%83%AD%E9%97%A8&sort=time'
+        
+        self.pattern_current_season = re.compile(r'.+?季数:</span>(.+?)<')
+        self.pattern_episodes_count = re.compile(r'.+?集数:</span>(.+?)<')
+        self.pattern_countries = re.compile(r'.+地区:<\/span>(.+?)<')
         self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
         self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
         self.pattern_language = re.compile(r'.+语言: ([\u4e00-\u9fa5 /]+) ')
@@ -36,7 +40,7 @@ class Handler(BaseHandler):
         self.pattern_watched = re.compile(r'.*?(\d+)人看过')
         self.pattern_want_to_watch = re.compile(r'.*?(\d+)人想看')
         self.pattern_comments_count = re.compile(r'[\u4e00-\u9fa5 ]+(\d+)[\u4e00-\u9fa5 ]+')
-        self.pattern_title = re.compile(r'(.+)的短评')
+        self.pattern_title = re.compile(r'(.+?) \(豆瓣\)')
         self.pattern_subtype = re.compile(r'.+的影评 ·.+')
         
         self.pattern_cele_image = re.compile(r'.+\((.+)\)')
@@ -146,7 +150,11 @@ class Handler(BaseHandler):
                     rating_per3=%s,
                     rating_per2=%s,
                     rating_per1=%s,
-                    playable=%s
+                    playable=%s,
+                    current_season=%s,
+                    episodes_count=%s,
+                    countries=%s,
+                    douban_tags=%s 
                     where douban_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -177,6 +185,10 @@ class Handler(BaseHandler):
                                     kw['rating_per2'],
                                     kw['rating_per1'],
                                     kw['playable'],
+                                    kw['current_season'],
+                                    kw['episodes_count'],
+                                    ','.join(kw['countries']),
+                                    ','.join(kw['douban_tags']),
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -221,11 +233,16 @@ class Handler(BaseHandler):
                     rating_per3,
                     rating_per2,
                     rating_per1,
-                    playable) 
+                    playable,
+                    current_season,
+                    episodes_count,
+                    countries,
+                    douban_tags) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -261,7 +278,11 @@ class Handler(BaseHandler):
                                     kw['rating_per3'],
                                     kw['rating_per2'],
                                     kw['rating_per1'],
-                                    kw['playable']))
+                                    kw['playable'],
+                                    kw['current_season'],
+                                    kw['episodes_count'],
+                                    ','.join(kw['countries']),
+                                    ','.join(kw['douban_tags']),))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -321,7 +342,8 @@ class Handler(BaseHandler):
                 'content': item.find('p').text().strip(),
             }
             comments.append(user_comment)
-
+        
+        re_countries = self.pattern_countries.search(response.doc('#info').html())
         re_aka = self.pattern_aka.search(response.doc('#info').html().strip())
         re_mins = self.pattern_mins.match(response.doc('#info').text())
         mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
@@ -332,8 +354,24 @@ class Handler(BaseHandler):
         re_watched = self.pattern_watched.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_want_to_watch = self.pattern_want_to_watch.match(response.doc('#subject-others-interests .subject-others-interests-ft a').text().strip())
         re_comments_count = self.pattern_comments_count.match(response.doc('#comments-section span.pl a').text().strip())
-        re_title = self.pattern_title.match(response.doc('#comments-section .mod-hd i').text().strip())
+        #re_title = self.pattern_title.match(response.doc('title').text().strip())
         re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
+        
+        genres = [x.text().strip() for x in response.doc('#info span[property|="v:genre"]').items()]
+        re_subtype = self.pattern_subtype.match(response.doc('section.reviews header h2').text().strip())
+        current_season = None
+        episodes_count = None
+        
+        if not re_subtype:
+            re_current_season = self.pattern_current_season.search(response.doc('#info').html())
+            re_episodes_count = self.pattern_episodes_count.search(response.doc('#info').html())
+            episodes_count = re_episodes_count.group(1) if re_episodes_count else None
+            
+            if len(response.doc('#season option[selected="selected"]').text().strip()):
+                current_season = response.doc('#season option[selected="selected"]').text()
+            elif re_current_season:
+                current_season = re_current_season.group(1)
+        
         celebrities_images = []
         celebrities_name = []
         celebrities_url = []
@@ -353,7 +391,7 @@ class Handler(BaseHandler):
         for item in response.doc('#info span.actor span.attrs a').items():
             re_casts_id = self.pattern_casts_id.match(item.attr('href'))
             casts_ids.append(re_casts_id.group(1) if re_casts_id else '')
-        
+        title = response.doc('title').text().strip().replace(' (豆瓣)', '')
         return {
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
@@ -379,7 +417,7 @@ class Handler(BaseHandler):
             "comments_count": re_comments_count.group(1) if re_comments_count else '0',
             "hot_comments": comments,
             "image_large": response.doc('#mainpic img').attr('src').strip(),
-            "title": re_title.group(1) if re_title else None,
+            "title": title if title else None,
             "subtype": 1 if re_subtype else 2,
             "celebrities_images": celebrities_images,
             "celebrities_name": celebrities_name,
@@ -393,6 +431,10 @@ class Handler(BaseHandler):
             "rating_per3": response.doc('#interest_sectl .ratings-on-weight .item:eq(2) .rating_per').text().strip(),
             "rating_per2": response.doc('#interest_sectl .ratings-on-weight .item:eq(3) .rating_per').text().strip(),
             "rating_per1": response.doc('#interest_sectl .ratings-on-weight .item:eq(4) .rating_per').text().strip(),
+            "current_season": current_season,
+            "episodes_count": episodes_count,
+            "countries": re_countries.group(1).strip().split(' / ') if re_countries else [],
+            "douban_tags": [x.text() for x in response.doc('.tags .tags-body a').items()]
         }
     
     def on_result(self,result):
@@ -400,6 +442,7 @@ class Handler(BaseHandler):
             return
         self.save_data(**result)
 
+    
     def is_exist(self, douban_id=None):
         if not douban_id:
             return True
