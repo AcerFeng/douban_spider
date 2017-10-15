@@ -17,9 +17,9 @@ class Handler(BaseHandler):
     "User-Agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36"
     }
     crawl_config = {
-        'itag': 'v001',
+        'itag': 'v002',
         'headers': headers,
-        #'proxy': 'https://61.160.208.222:8080',
+        'proxy': 'https://61.160.208.222:8080',
         'cookies': {
           '__utmb':'30149280.0.10.1505289762',
           'dbcl2': '162930320:6IWEbIKitho'
@@ -154,7 +154,8 @@ class Handler(BaseHandler):
                     current_season=%s,
                     episodes_count=%s,
                     countries=%s,
-                    douban_tags=%s 
+                    douban_tags=%s,
+                    rating_betterthan=%s 
                     where douban_id=%s'''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -189,6 +190,7 @@ class Handler(BaseHandler):
                                     kw['episodes_count'],
                                     ','.join(kw['countries']),
                                     ','.join(kw['douban_tags']),
+                                    kw['rating_betterthan'],
                                     kw['douban_id']))
 
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
@@ -237,12 +239,13 @@ class Handler(BaseHandler):
                     current_season,
                     episodes_count,
                     countries,
-                    douban_tags) 
+                    douban_tags,
+                    rating_betterthan) 
                     values (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s)
+                        %s, %s, %s, %s, %s)
                 '''
                 cursor.execute(sql, (kw['comments_count'], 
                                     ','.join(kw['directors_name']), 
@@ -282,7 +285,8 @@ class Handler(BaseHandler):
                                     kw['current_season'],
                                     kw['episodes_count'],
                                     ','.join(kw['countries']),
-                                    ','.join(kw['douban_tags']),))
+                                    ','.join(kw['douban_tags']),
+                                    kw['rating_betterthan']))
                 self.save_comments(kw['hot_comments'], kw['douban_id'])
 
             self.connect.commit()
@@ -295,7 +299,7 @@ class Handler(BaseHandler):
     def on_start(self):
         self.crawl(self.DOU_BAN_MOVIE_HOT, callback=self.index_page, params={'page_limit' : 20, 'page_start' : 0}, save={'page_limit' : 20, 'page_start' : 0})
 
-    @config(age=10 * 24 * 60 * 60)
+    @config(age=60 * 24 * 60 * 60)
     def index_page(self, response):
         data_list = None
         if 'subjects' in response.json:
@@ -388,6 +392,7 @@ class Handler(BaseHandler):
             re_casts_id = self.pattern_casts_id.match(item.attr('href'))
             casts_ids.append(re_casts_id.group(1) if re_casts_id else '')
         title = response.doc('title').text().strip().encode('utf-8').replace(' (豆瓣)', '')
+        
         return {
             "douban_id": re_douban_id.group(1) if re_douban_id else None,
             "url": response.url,
@@ -430,7 +435,8 @@ class Handler(BaseHandler):
             "current_season": current_season,
             "episodes_count": episodes_count,
             "countries": re_countries.group(1).strip().split(' / ') if re_countries else [],
-            "douban_tags": [x.text() for x in response.doc('.tags .tags-body a').items()]
+            "douban_tags": [x.text() for x in response.doc('.tags .tags-body a').items()],
+            "rating_betterthan": response.doc('#interest_sectl .rating_betterthan').text().strip(),
         }
     
     def on_result(self,result):

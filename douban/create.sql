@@ -44,6 +44,7 @@ CREATE TABLE `douban_video` (
   `episodes_count` varchar(5) DEFAULT NULL,
   `countries` varchar(50) DEFAULT NULL,
   `douban_tags` varchar(300) DEFAULT NULL,
+  `rating_betterthan` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `douban_id` (`douban_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
