@@ -34,7 +34,7 @@ class Handler(BaseHandler):
         self.pattern_countries = re.compile(r'.+地区:<\/span>(.+?)<')
         self.pattern_writers = re.compile(r'.编剧</span>: <span class="attrs">(.+?)</span>')
         self.pattern_aka = re.compile(r'.+?又名:</span>(.+)<')
-        self.pattern_mins = re.compile(r'.+片长: (\w+[\u4e00-\u9fa5]+) ')
+        self.pattern_mins = re.compile(r'.+片长:</span>(.+?)<')
         self.pattern_language = re.compile(r'.+语言:<\/span>(.+?)<')
         self.pattern_douban_id = re.compile(r'.+/(\d+)/')
         self.pattern_watching = re.compile(r'.*?(\d+)人在看')
@@ -117,8 +117,8 @@ class Handler(BaseHandler):
         
         re_countries = self.pattern_countries.search(response.doc('#info').html().encode('utf-8'))
         re_aka = self.pattern_aka.search(response.doc('#info').html().strip().encode('utf-8'))
-        re_mins = self.pattern_mins.match(response.doc('#info').text())
-        mins = re_mins.group(1) if re_mins else response.doc('#info span[property|="v:runtime"]').text().strip()
+        re_mins = self.pattern_mins.search(response.doc('#info').html().encode('utf-8'))
+        mins = re_mins.group(1) if re_mins and re_mins.group(1).strip() else response.doc('#info span[property|="v:runtime"]').text().strip()
         re_language = self.pattern_language.search(response.doc('#info').html().encode('utf-8'))
         language = re_language.group(1).strip() if re_language else None
         re_douban_id = self.pattern_douban_id.match(response.url)
